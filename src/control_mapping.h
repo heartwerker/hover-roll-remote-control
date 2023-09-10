@@ -127,6 +127,8 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
             fastMode.activated = 1;
     }
 
+    // ========================= covert cotrol to msg =========================
+
     if (!wii.z && !wii.c) // no buttons =========================
     {
         // reset helpers

@@ -1,7 +1,7 @@
 #include <Arduino.h>
-#include <elapsedMillis.h>
-#include "ui.h"
 #include "config.h"
+#include "ui.h"
+#include <elapsedMillis.h>
 #include "control_mapping.h"
 
 #if USE_ESPNOW
@@ -223,6 +223,8 @@ void loop()
         ESPNOW_sendBytes((uint8_t *)&msg, sizeof(msg));
 #endif
 #endif
+
+        // safety off if no new values are received
         if (since_received > 1000)
         {
             since_received = 900;
@@ -237,6 +239,8 @@ void loop()
                 msg_from_remote.cmd_Right_L,
                 msg_from_remote.cmd_Right_R);
         }
+
+
 
         // Blink the LED
         digitalWrite(LED_BUILTIN, (millis() % 2000) < 1000);
