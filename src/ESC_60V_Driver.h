@@ -5,7 +5,6 @@
 #include <Arduino.h>
 #include <elapsedMillis.h>
 
-
 class ESC_60V_Driver
 {
 public:
@@ -33,7 +32,8 @@ public:
             speed += ((float(counter_speed_pulse) / float(since_count)) - speed) * 0.2f;
             since_count = 0;
             counter_speed_pulse = 0;
-           // Serial.printf("speed: %f\n", speed);
+
+            // Serial.printf("speed: %f\n", speed);
         }
     }
 
@@ -45,11 +45,13 @@ public:
             computeSpeed();
             applySpeed();
 
+#if 0
             if (since_reverse > 5000)
             {
                 since_reverse = 0;
                 setSpeed(-target);
             }
+#endif
         }
     }
 
@@ -60,7 +62,7 @@ public:
     }
     void applySpeed()
     {
-        current += (target - current) * 0.1001f;
+        current += (target - current) * 0.0201f;
 
         bool dir_output = current >= 0;
         if (invert_dir)
@@ -69,10 +71,18 @@ public:
 
         int pwm = fabs(current) * 1023;
         analogWrite(control_pwm_pin, pwm);
-        //Serial.printf("pwm:  %d\n", pwm);
+
+        if (since_update > 50)
+        {
+            since_update = 0;
+            Serial.printf(" (%d) - dir: %d  pwm: %4d  | ", index, dir_output, pwm);
+        }
     }
 
 public:
+    int index = 0;
+    elapsedMillis since_update = 0;
+
     uint8_t feedback_speed_pin;
     int counter_speed_pulse = 0;
 
@@ -91,7 +101,6 @@ private:
 };
 
 #endif // ESC_60V_DRIVER_H
-
 
 ESC_60V_Driver ESC_Right(D1, D3, D2);
 ESC_60V_Driver ESC_Left(D5, D7, D6);
@@ -121,10 +130,12 @@ void ICACHE_RAM_ATTR ISR_Right()
 void ESC_60V_Driver_setup()
 {
     ESC_Left.begin();
+    ESC_Left.index = 0;
     ESC_Right.begin();
+    ESC_Right.index = 1;
     ESC_Right.invert_dir = true;
-   // attachInterrupt(digitalPinToInterrupt(ESC_Left.feedback_speed_pin), ISR_Left, CHANGE);
-   // attachInterrupt(digitalPinToInterrupt(ESC_Right.feedback_speed_pin), ISR_Right, CHANGE);
+    // attachInterrupt(digitalPinToInterrupt(ESC_Left.feedback_speed_pin), ISR_Left, CHANGE);
+    // attachInterrupt(digitalPinToInterrupt(ESC_Right.feedback_speed_pin), ISR_Right, CHANGE);
 }
 
 void ESC_60V_DRIVER_setSpeed(float left, float right)

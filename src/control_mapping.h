@@ -158,15 +158,11 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         msg.cmd_Right_R = speed_Right;
 
 #else
-        int16_t uSpeed_L = (int16_t)((speed + steer * STEER_FACTOR) * range);
-        int16_t uSpeed_R = (int16_t)((speed - steer * STEER_FACTOR) * range);
+        msg.cmd_L = (int16_t)((control.speed + control.steer * STEER_FACTOR) * control.range);
+        msg.cmd_R = (int16_t)((control.speed - control.steer * STEER_FACTOR) * control.range);
 
-        // Limit speed
-        uSpeed_L = clipf(uSpeed_L, -range, range);
-        uSpeed_R = clipf(uSpeed_R, -range, range);
-
-        msg.cmd_L = uSpeed_L;
-        msg.cmd_R = uSpeed_R;
+        msg.cmd_L = clipf(msg.cmd_L, -control.range, control.range);
+        msg.cmd_R = clipf(msg.cmd_R, -control.range, control.range);
 #endif
 #else
 #if USE_DUAL_BOARDS

@@ -126,10 +126,16 @@ void ESPNOW_sendMessage(message_from_remote *msg)
         message_from_remote message;
         memcpy(&message, msg, sizeof(message_from_remote));
 
-        message.cmd_Left_L = INVERT_CMD_LEFT_L ? -message.cmd_Left_L : message.cmd_Left_L;
-        message.cmd_Left_R = INVERT_CMD_LEFT_R ? -message.cmd_Left_R : message.cmd_Left_R;
-        message.cmd_Right_L = INVERT_CMD_RIGHT_L ? -message.cmd_Right_L : message.cmd_Right_L;
-        message.cmd_Right_R = INVERT_CMD_RIGHT_R ? -message.cmd_Right_R : message.cmd_Right_R;
+#if USE_DUAL_BOARDS
+        message.cmd_Left_L *= INVERT_CMD_LEFT_L ? -1 : 1;
+        message.cmd_Left_R *= INVERT_CMD_LEFT_R ? -1 : 1;
+        message.cmd_Right_L *= INVERT_CMD_RIGHT_L ? -1 : 1;
+        message.cmd_Right_R *= INVERT_CMD_RIGHT_R ? -1 : 1;
+#else
+
+        message.cmd_L *= INVERT_CMD_LEFT_L ? -1 : 1;
+        message.cmd_R *= INVERT_CMD_RIGHT_L ? -1 : 1;
+#endif
 
         uint8_t *data = (uint8_t *)&message;
         ESPNOW_sendBytes(data, sizeof(message_from_remote));
