@@ -21,6 +21,13 @@ elapsedMillis since_received = 0;
 #if USE_WII_NUNCHUCK
 // https://github.com/moefh/esp32-wii-nunchuk
 #include "wii_i2c.h"
+
+//The wiring signal of Wii-Nunchuck has 4 lines. It includes 
+// +3.3V  - black
+// GND    - red
+// SCL    - white 
+// SDA    - yellow
+
 // pins connected to the Nunchuk:
 #define PIN_SDA D2
 #define PIN_SCL D1
@@ -105,11 +112,18 @@ void ESPNOW_receiveBytes(uint8_t *data, uint8_t len)
     since_received = 0;
 
 #if IS_REMOTE
+
+#if USE_DUAL_BOARDS
     memcpy(&msg_from_receiver, data, len);
     msg_from_receiver.speed_Left_L = INVERT_SPEED_LEFT_L ? -msg_from_receiver.speed_Left_L : msg_from_receiver.speed_Left_L;
     msg_from_receiver.speed_Left_R = INVERT_SPEED_LEFT_R ? -msg_from_receiver.speed_Left_R : msg_from_receiver.speed_Left_R;
     msg_from_receiver.speed_Right_L = INVERT_SPEED_RIGHT_L ? -msg_from_receiver.speed_Right_L : msg_from_receiver.speed_Right_L;
     msg_from_receiver.speed_Right_R = INVERT_SPEED_RIGHT_R ? -msg_from_receiver.speed_Right_R : msg_from_receiver.speed_Right_R;
+#else
+    // memcpy(&msg_from_receiver, data, len);
+    // msg_from_receiver.speed_L = INVERT_SPEED_LEFT_L ? -msg_from_receiver.speed_L : msg_from_receiver.speed_L;
+    // msg_from_receiver.speed_R = INVERT_SPEED_LEFT_R ? -msg_from_receiver.speed_R : msg_from_receiver.speed_R;
+#endif
 
 #else // IS_RECEIVER
     memcpy(&msg_from_remote, data, len);
@@ -163,9 +177,13 @@ void loop()
 
 #if DEBUG_TX
 #if DEBUG_FOR_PLOTTER
-            Serial.printf("%4d,%4d,%4d,%4d,", msg.cmd_Left_L, msg.cmd_Left_R, msg.cmd_Right_L, msg.cmd_Right_R);
+            // Serial.printf("%4d,%4d,%4d,%4d,", msg.cmd_Left_L, msg.cmd_Left_R, msg.cmd_Right_L, msg.cmd_Right_R);
 #else
+#if USE_DUAL_BOARDS
             Serial.printf("CMDs Left_LR: %4d,%4d, Right_LR: %4d,%4d  |", msg.cmd_Left_L, msg.cmd_Left_R, msg.cmd_Right_L, msg.cmd_Right_R);
+#else
+            Serial.printf("CMDs L: %4d, R: %4d  |", msg.cmd_L, msg.cmd_R);
+#endif
 #endif
 #endif
             ESPNOW_sendMessage(&msg);

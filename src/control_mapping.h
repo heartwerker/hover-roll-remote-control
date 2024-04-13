@@ -126,6 +126,11 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         if ((fastMode.max_x > 100) && (fastMode.min_x < -100))
             fastMode.activated = 1;
     }
+    else
+    {
+        control.speed = 0;
+        control.range = 0;
+    }
 
     // ========================= covert cotrol to msg =========================
 

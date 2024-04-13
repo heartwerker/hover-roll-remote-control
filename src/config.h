@@ -5,7 +5,7 @@
 // https://randomnerdtutorials.com/esp8266-pinout-reference-gpios/
 // --> D1, D2, D5, D6, D7 are safe. all others be careful with using
 
-#define IS_REMOTE 0
+#define IS_REMOTE 1
 #define IS_RECEIVER !IS_REMOTE
 
 #define USE_ESPNOW 1
@@ -16,17 +16,16 @@
 #define USE_HOVER_SERIAL 0
 #define USE_ESC 1
 
-#define USE_SERIAL_MONITOR_CONTROL 0
-
+#define USE_SERIAL_MONITOR_CONTROL 1
 
 #if IS_REMOTE
 
-#define DEBUG_FOR_PLOTTER 1
 
 #define DEBUG_RX 0
-#define DEBUG_WII_RAW 1
-#define DEBUG_MAPPING 0
+#define DEBUG_WII_RAW 0
+#define DEBUG_MAPPING 1
 #define DEBUG_TX 1
+#define DEBUG_FOR_PLOTTER 0
 
 #else // IS_RECEIVER
 
@@ -37,8 +36,8 @@
 #endif
 
 #define INVERT_CMD_LEFT_L 0 // = cmd_L for single board
-#define INVERT_CMD_LEFT_R 1
-#define INVERT_CMD_RIGHT_L 1 // = cmd_R for single board
+#define INVERT_CMD_LEFT_R 0
+#define INVERT_CMD_RIGHT_L 0 // = cmd_R for single board
 #define INVERT_CMD_RIGHT_R 0
 
 #define INVERT_SPEED_LEFT_L 1

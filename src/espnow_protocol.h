@@ -132,7 +132,6 @@ void ESPNOW_sendMessage(message_from_remote *msg)
         message.cmd_Right_L *= INVERT_CMD_RIGHT_L ? -1 : 1;
         message.cmd_Right_R *= INVERT_CMD_RIGHT_R ? -1 : 1;
 #else
-
         message.cmd_L *= INVERT_CMD_LEFT_L ? -1 : 1;
         message.cmd_R *= INVERT_CMD_RIGHT_L ? -1 : 1;
 #endif
