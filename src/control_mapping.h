@@ -55,70 +55,10 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         control.speed = wii_y;
         control.range = 1000;
     }
-    else if (wii.z && wii.c) // both buttons =========================
-    {
-#if 1 // acceleration control
-        if (fabs(wii.acc_x) > acc_x_max)
-            acc_x_max = fabs(wii.acc_x);
-
-#define MIN_RANGE 60
-        if (acc_x_max > MIN_RANGE)
-            acc_x_max -= 0.05;
-
-        control.steer = wii.acc_x;
-        control.steer /= acc_x_max;
-        control.steer = convert_zero_zone(control.steer, 0.1);
-        control.steer *= 3.0;
-        control.steer = clipf(control.steer, -1, 1);
-
-#if 0
-        acc_y = wii.acc_y - acc_y_offset;
-        if (fabs(acc_y) > acc_y_max)
-            acc_y_max = fabs(acc_y);
-
-        if (acc_y_max > MIN_RANGE)
-            acc_y_max -= 0.05;
-
-        control.speed = acc_y;
-        control.speed /= acc_y_max;
-        control.speed = convert_zero_zone(control.speed, 0.1);
-#else
-        control.speed = wii.y;
-        control.speed /= 127;
-#endif
-
-#if 0
-        float factor_startup = clipf(float(since_acc_control) / 3000.0, 0, 1);
-        control.steer *= factor_startup;
-        control.speed *= factor_startup;
-#endif
-
-        control.speed = wii_y;
-        control.range = 1000;
-
-        // Serial.printf("wii.acc_x: %4d wii.acc_y: %4d acc_y_offset: %4d acc_y: %4d steer: %2.2f speed: %2.2ff", wii.acc_x, wii.acc_y, acc_y_offset, acc_y, control.steer, control.speed);
-
-#endif
-
-#if 0 // fastmode stuff
-        if (fastMode.activated)
-        {
-            control.steer = wii_x;
-            control.speed = wii_y;
-            control.range = 1000;
-
-        }
-
-        fastMode.max_x = wii.acc_x > fastMode.max_x ? wii.acc_x : fastMode.max_x;
-        fastMode.min_x = wii.acc_x < fastMode.min_x ? wii.acc_x : fastMode.min_x;
-
-        if ((fastMode.max_x > 100) && (fastMode.min_x < -100))
-            fastMode.activated = 1;
-#endif
-    }
     else
     {
         control.speed = 0;
+        control.steer = 0;
         control.range = 0;
     }
 
@@ -139,9 +79,9 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         acc_y_offset = wii.acc_y;
         // Serial.printf("wii.acc_x: %4d wii.acc_y: %4d acc_y_offset: %4d acc_y: %4d steer: %2.2f speed: %2.2ff", wii.acc_x, wii.acc_y, acc_y_offset, acc_y, steer, speed);
     }
-    else
-    {
-#define STEER_FACTOR 1
+
+
+#define STEER_FACTOR 0.3
 
 #if USE_DUAL_BOARDS
         float speed_Left = control.speed + control.steer * STEER_FACTOR * (-1);
@@ -162,7 +102,6 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         msg.cmd_L = clipf(msg.cmd_L, -control.range, control.range);
         msg.cmd_R = clipf(msg.cmd_R, -control.range, control.range);
 #endif
-    }
 
     return msg;
 }
