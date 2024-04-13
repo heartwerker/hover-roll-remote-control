@@ -34,7 +34,6 @@ FastMode fastMode;
 
 message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
 {
-
 #if DEBUG_WII_RAW
     wii_print_state(wii);
 #endif
@@ -48,24 +47,17 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
     {
         control.steer = wii_x;
         control.speed = wii_y;
-        control.range = 500;
-
-#if DEBUG_MAPPING
-        Serial.printf("wii_x: %2.2f wii_y: %2.2f steer: %2.2f speed: %2.2f, range: %4d ----- ", wii_x, wii_y, control.steer, control.speed, control.range);
-#endif
+        control.range = 300;
     }
     else if (wii.c && !wii.z) // upper button only =========================
     {
-#if 0 // via joystick
         control.steer = wii_x;
         control.speed = wii_y;
-        control.range = 500;
-
-#if DEBUG_MAPPING
-        Serial.printf("wii_x: %2.2f wii_y: %2.2f steer: %2.2f speed: %2.2f, range: %4d ----- ", wii_x, wii_y, control.steer, control.speed, control.range);
-#endif
-
-#else // via acceleration ?!
+        control.range = 1000;
+    }
+    else if (wii.z && wii.c) // both buttons =========================
+    {
+#if 1 // acceleration control
         if (fabs(wii.acc_x) > acc_x_max)
             acc_x_max = fabs(wii.acc_x);
 
@@ -104,20 +96,17 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         control.speed = wii_y;
         control.range = 1000;
 
-        Serial.printf("wii.acc_x: %4d wii.acc_y: %4d acc_y_offset: %4d acc_y: %4d steer: %2.2f speed: %2.2ff", wii.acc_x, wii.acc_y, acc_y_offset, acc_y, control.steer, control.speed);
+        // Serial.printf("wii.acc_x: %4d wii.acc_y: %4d acc_y_offset: %4d acc_y: %4d steer: %2.2f speed: %2.2ff", wii.acc_x, wii.acc_y, acc_y_offset, acc_y, control.steer, control.speed);
+
 #endif
-    }
-    else if (wii.z && wii.c) // both buttons =========================
-    {
+
+#if 0 // fastmode stuff
         if (fastMode.activated)
         {
             control.steer = wii_x;
             control.speed = wii_y;
             control.range = 1000;
 
-#if DEBUG_MAPPING
-            Serial.printf("wii_x: %2.2f wii_y: %2.2f steer: %2.2f speed: %2.2f, range: %4d ----- ", wii_x, wii_y, control.steer, control.speed, control.range);
-#endif
         }
 
         fastMode.max_x = wii.acc_x > fastMode.max_x ? wii.acc_x : fastMode.max_x;
@@ -125,6 +114,7 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
 
         if ((fastMode.max_x > 100) && (fastMode.min_x < -100))
             fastMode.activated = 1;
+#endif
     }
     else
     {
@@ -132,7 +122,11 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         control.range = 0;
     }
 
-    // ========================= covert cotrol to msg =========================
+#if DEBUG_MAPPING
+    Serial.printf("wii_x: %2.2f wii_y: %2.2f steer: %2.2f speed: %2.2f, range: %4d ----- ", wii_x, wii_y, control.steer, control.speed, control.range);
+#endif
+
+    //  covert control to msg =========================
 
     if (!wii.z && !wii.c) // no buttons =========================
     {
@@ -149,13 +143,12 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
     {
 #define STEER_FACTOR 1
 
-#if USE_CMD_L_R
 #if USE_DUAL_BOARDS
         float speed_Left = control.speed + control.steer * STEER_FACTOR * (-1);
         speed_Left = clipf(speed_Left, -1, 1) * control.range;
         msg.cmd_Left_L = speed_Left;
         msg.cmd_Left_R = speed_Left;
-        
+
         float speed_Right = control.speed - control.steer * STEER_FACTOR * (-1);
         speed_Right = clipf(speed_Right, -1, 1) * control.range;
 
@@ -168,25 +161,6 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
 
         msg.cmd_L = clipf(msg.cmd_L, -control.range, control.range);
         msg.cmd_R = clipf(msg.cmd_R, -control.range, control.range);
-#endif
-#else
-#if USE_DUAL_BOARDS
-        // not intuitive dont use
-#else
-        // Convert to int
-        int16_t uSteer = (int16_t)(steer * range);
-        int16_t uSpeed = (int16_t)(speed * range);
-
-        // Limit speed
-        if (uSpeed > range)
-            uSpeed = range;
-        else if (uSpeed < -range)
-            uSpeed = -range;
-
-        // Send
-        msg.cmd_Left_L = uSteer;
-        msg.cmd_Left_R = uSpeed;
-#endif
 #endif
     }
 
