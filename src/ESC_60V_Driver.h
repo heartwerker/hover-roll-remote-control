@@ -101,7 +101,7 @@ private:
 };
 
 #endif // ESC_60V_DRIVER_H
-
+//pwm, dir, speed
 ESC_60V_Driver ESC_Right(D1, D3, D2);
 ESC_60V_Driver ESC_Left(D5, D7, D6);
 
