@@ -41,7 +41,9 @@ typedef struct message_to_remote
 
     message_to_remote msg_from_receiver;
 
-uint8_t *address_target = nullptr;
+// uint8_t *address_target = nullptr;
+uint8_t *addr_L = nullptr;
+uint8_t *addr_R = nullptr;
 
 
 //================================================================
@@ -69,9 +71,10 @@ void ESPNOW_Init(ESPNOW_RX_data_callback callback)
     receiveBytes = callback;
 
 #if IS_REMOTE
-    address_target = MAC_ADDRESS_RECEIVER;
+    addr_L = MAC_L;
+    addr_R = MAC_R;
 #else
-    address_target = MAC_ADDRESS_REMOTE;
+    addr_L = MAC_ADDRESS_REMOTE;
 #endif
 
 #if 1
@@ -94,7 +97,8 @@ void ESPNOW_Init(ESPNOW_RX_data_callback callback)
     esp_now_register_send_cb(OnDataSent);
 
     // Register peer
-    esp_now_add_peer(address_target, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
+    esp_now_add_peer(addr_L, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
+    esp_now_add_peer(addr_R, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
 
     // Register for a callback function that will be called when data is received
     esp_now_register_recv_cb(OnDataRecv);
@@ -102,26 +106,25 @@ void ESPNOW_Init(ESPNOW_RX_data_callback callback)
 
 void ESPNOW_sendBytes(uint8_t *data, uint8_t len)
 {
-    if (address_target != nullptr)
-        esp_now_send(address_target, data, len);
+    if (addr_L != nullptr)
+    {
+        esp_now_send(addr_L, data, len);
+        esp_now_send(addr_R, data, len);
+    }
 }
-
 
 void ESPNOW_sendMessage(message_to_remote *msg)
 {
-    if (address_target != nullptr)
-    {
-        message_to_remote message;
-        memcpy(&message, msg, sizeof(message_to_remote));
+    message_to_remote message;
+    memcpy(&message, msg, sizeof(message_to_remote));
 
-        uint8_t *data = (uint8_t *)&message;
-        ESPNOW_sendBytes(data, sizeof(message_to_remote));
-    }
+    uint8_t *data = (uint8_t *)&message;
+    ESPNOW_sendBytes(data, sizeof(message_to_remote));
 }
 
 void ESPNOW_sendMessage(message_from_remote *msg)
 {
-    if (address_target != nullptr)
+    if (addr_L != nullptr)
     {
         message_from_remote message;
         memcpy(&message, msg, sizeof(message_from_remote));
