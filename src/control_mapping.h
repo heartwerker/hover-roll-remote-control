@@ -81,7 +81,7 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
     }
 
 
-#define STEER_FACTOR 0.3
+#define STEER_FACTOR 1.0
 
 #if USE_DUAL_BOARDS
         float speed_Left = control.speed + control.steer * STEER_FACTOR * (-1);

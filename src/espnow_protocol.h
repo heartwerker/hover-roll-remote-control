@@ -126,22 +126,45 @@ void ESPNOW_sendMessage(message_from_remote *msg)
 {
     if (addr_L != nullptr)
     {
-        message_from_remote message;
-        memcpy(&message, msg, sizeof(message_from_remote));
+        message_from_remote msg_Left;
 
-#if USE_DUAL_BOARDS
-        message.cmd_Left_L *= INVERT_CMD_LEFT_L ? -1 : 1;
-        message.cmd_Left_R *= INVERT_CMD_LEFT_R ? -1 : 1;
-        message.cmd_Right_L *= INVERT_CMD_RIGHT_L ? -1 : 1;
-        message.cmd_Right_R *= INVERT_CMD_RIGHT_R ? -1 : 1;
-#else
-        message.cmd_L *= INVERT_CMD_LEFT_L ? -1 : 1;
-        message.cmd_R *= INVERT_CMD_RIGHT_L ? -1 : 1;
-#endif
+        msg_Left.cmd_L = msg->cmd_L * (INVERT_CMD_LEFT_L ? -1 : 1);
+        msg_Left.cmd_R = msg->cmd_L * (INVERT_CMD_LEFT_R ? -1 : 1);
 
-        uint8_t *data = (uint8_t *)&message;
-        ESPNOW_sendBytes(data, sizeof(message_from_remote));
+        uint8_t *data = (uint8_t *)&msg_Left;
+        esp_now_send(addr_R, data, sizeof(message_from_remote));
+    }
+    if (addr_R != nullptr)
+    {
+        message_from_remote msg_Right;
+
+        msg_Right.cmd_L = msg->cmd_R * (INVERT_CMD_RIGHT_L ? -1 : 1);
+        msg_Right.cmd_R = msg->cmd_R * (INVERT_CMD_RIGHT_R ? -1 : 1);
+
+        uint8_t *data = (uint8_t *)&msg_Right;
+        esp_now_send(addr_L, data, sizeof(message_from_remote));
     }
 }
+// void ESPNOW_sendMessage(message_from_remote *msg)
+// {
+//     if (addr_L != nullptr)
+//     {
+//         message_from_remote message;
+//         memcpy(&message, msg, sizeof(message_from_remote));
+
+// #if USE_DUAL_BOARDS
+//         message.cmd_Left_L *= INVERT_CMD_LEFT_L ? -1 : 1;
+//         message.cmd_Left_R *= INVERT_CMD_LEFT_R ? -1 : 1;
+//         message.cmd_Right_L *= INVERT_CMD_RIGHT_L ? -1 : 1;
+//         message.cmd_Right_R *= INVERT_CMD_RIGHT_R ? -1 : 1;
+// #else
+//         message.cmd_L *= INVERT_CMD_LEFT_L ? -1 : 1;
+//         message.cmd_R *= INVERT_CMD_RIGHT_L ? -1 : 1;
+// #endif
+
+//         uint8_t *data = (uint8_t *)&message;
+//         ESPNOW_sendBytes(data, sizeof(message_from_remote));
+//     }
+// }
 
 #endif // ESPNOW_PROTOCOL_H
