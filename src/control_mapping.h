@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CONTROL_MAPPING_H
-#define CONTROL_MAPPING_H
 
 // this computes wii remote to espnow message (hovercontrol cmds)
 
@@ -47,13 +45,13 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
     {
         control.steer = wii_x;
         control.speed = wii_y;
-        control.range = 300;
+        control.range = 400;
     }
     else if (wii.c && !wii.z) // upper button only =========================
     {
         control.steer = wii_x;
         control.speed = wii_y;
-        control.range = 1000;
+        control.range = 700;
     }
     else
     {
@@ -96,8 +94,19 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
         msg.cmd_Right_R = speed_Right;
 
 #else
-        msg.cmd_L = (int16_t)((control.speed + control.steer * STEER_FACTOR) * control.range);
-        msg.cmd_R = (int16_t)((control.speed - control.steer * STEER_FACTOR) * control.range);
+        float left = control.speed + control.steer * STEER_FACTOR;
+        float right = control.speed - control.steer * STEER_FACTOR;
+
+#if 1 // better steering:
+        if (control.speed < 0)
+        {
+            left *= -1;
+            right *= -1;
+        }
+#endif
+
+        msg.cmd_L = (int16_t)(left * control.range);
+        msg.cmd_R = (int16_t)(right * control.range);
 
         msg.cmd_L = clipf(msg.cmd_L, -control.range, control.range);
         msg.cmd_R = clipf(msg.cmd_R, -control.range, control.range);
@@ -105,5 +114,3 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
 
     return msg;
 }
-
-#endif
