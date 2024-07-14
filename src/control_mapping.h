@@ -6,6 +6,7 @@
 #include "wii_i2c.h"
 #include "elapsedMillis.h"
 #include "helper.h"
+#include "filter.h"
 
 typedef struct struct_control
 {
@@ -41,24 +42,32 @@ message_from_remote map_wii_control(wii_i2c_nunchuk_state wii)
     float wii_x = clipf(float(wii.x + 1) / 127.0, -1, 1);
     float wii_y = clipf(float(wii.y + 0) / 127.0, -1, 1);
 
+    struct_control set;
+
+
     if (wii.z && !wii.c) // lower button only =========================
     {
-        control.steer = wii_x;
-        control.speed = wii_y;
-        control.range = 400;
+        set.steer = wii_x;
+        set.speed = wii_y;
+        set.range = 400;
     }
     else if (wii.c && !wii.z) // upper button only =========================
     {
-        control.steer = wii_x;
-        control.speed = wii_y;
-        control.range = 700;
+        set.steer = wii_x;
+        set.speed = wii_y;
+        set.range = 700;
     }
     else
     {
-        control.speed = 0;
-        control.steer = 0;
-        control.range = 0;
+        set.speed = 0;
+        set.steer = 0;
+        set.range = 0;
     }
+
+    simpleFilterf(control.speed, set.speed, 0.2f);
+    simpleFilterf(control.steer, set.steer, 0.2f);
+    simpleFilter(control.range, set.range, 0.2f);
+    
 
 #if DEBUG_MAPPING
     Serial.printf("wii_x: %2.2f wii_y: %2.2f steer: %2.2f speed: %2.2f, range: %4d ----- ", wii_x, wii_y, control.steer, control.speed, control.range);
