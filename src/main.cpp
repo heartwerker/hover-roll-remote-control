@@ -21,6 +21,13 @@ elapsedMillis since_received = 0;
 #if USE_WII_NUNCHUCK
 // https://github.com/moefh/esp32-wii-nunchuk
 #include "wii_i2c.h"
+
+//The wiring signal of Wii-Nunchuck has 4 lines. It includes 
+// +3.3V  - black
+// GND    - red
+// SCL    - white 
+// SDA    - yellow
+
 // pins connected to the Nunchuk:
 #define PIN_SDA D2
 #define PIN_SCL D1
@@ -65,11 +72,15 @@ void setup()
 
 #if IS_REMOTE
 #if USE_WII_NUNCHUCK
-    if (wii_i2c_init(PIN_SDA, PIN_SCL) != 0)
+    if (!wii_i2c_init(PIN_SDA, PIN_SCL))
     {
         Serial.printf("Error initializing nunchuk :(");
-        return;
     }
+    else
+    {
+        Serial.printf("initialized nunchuk :(");
+    }
+    delay(500);
     wii_i2c_request_state();
 #endif
 #endif
@@ -85,14 +96,14 @@ void setup()
 #endif
 }
 
-void setSpeedMotors(float left_L, float  left_R, float right_L, float right_R)
+void setSpeedMotors(float left_L, float left_R, float right_L, float right_R)
 {
 #if USE_HOVER_SERIAL
     hover_Left.send(left_L, left_R);
     hover_Right.send(right_L, right_R);
 #endif
 #if USE_ESC
-    ESC_60V_DRIVER_setSpeed(left_L / 1000.f, right_R / 1000.f);
+    ESC_60V_DRIVER_setSpeed(left_L / 1000.f, left_R / 1000.f);
 #endif
 }
 // ########################## RX callback ##########################
@@ -101,21 +112,34 @@ void ESPNOW_receiveBytes(uint8_t *data, uint8_t len)
     since_received = 0;
 
 #if IS_REMOTE
+
+#if USE_DUAL_BOARDS
     memcpy(&msg_from_receiver, data, len);
     msg_from_receiver.speed_Left_L = INVERT_SPEED_LEFT_L ? -msg_from_receiver.speed_Left_L : msg_from_receiver.speed_Left_L;
     msg_from_receiver.speed_Left_R = INVERT_SPEED_LEFT_R ? -msg_from_receiver.speed_Left_R : msg_from_receiver.speed_Left_R;
     msg_from_receiver.speed_Right_L = INVERT_SPEED_RIGHT_L ? -msg_from_receiver.speed_Right_L : msg_from_receiver.speed_Right_L;
     msg_from_receiver.speed_Right_R = INVERT_SPEED_RIGHT_R ? -msg_from_receiver.speed_Right_R : msg_from_receiver.speed_Right_R;
+#else
+    // memcpy(&msg_from_receiver, data, len);
+    // msg_from_receiver.speed_L = INVERT_SPEED_LEFT_L ? -msg_from_receiver.speed_L : msg_from_receiver.speed_L;
+    // msg_from_receiver.speed_R = INVERT_SPEED_LEFT_R ? -msg_from_receiver.speed_R : msg_from_receiver.speed_R;
+#endif
 
 #else // IS_RECEIVER
     memcpy(&msg_from_remote, data, len);
 
+#if USE_DUAL_BOARDS
     setSpeedMotors(
-        msg_from_remote.cmd_Left_L, 
-        msg_from_remote.cmd_Left_R, 
+        msg_from_remote.cmd_Left_L,
+        msg_from_remote.cmd_Left_R,
         msg_from_remote.cmd_Right_L,
-        msg_from_remote.cmd_Right_R
-    );
+        msg_from_remote.cmd_Right_R);
+#else
+    setSpeedMotors(
+        msg_from_remote.cmd_L,
+        msg_from_remote.cmd_R,
+        0, 0);
+#endif
 #endif
 }
 
@@ -138,6 +162,13 @@ void loop()
         }
         else
         {
+#if 0
+            Serial.print("data: ");
+            for (int i = 0; i < 6; i++)
+                Serial.printf("0x%02X ", data[i]);
+            Serial.println();
+#endif
+
             wii_i2c_nunchuk_state state;
             wii_i2c_decode_nunchuk(data, &state);
 
@@ -146,9 +177,13 @@ void loop()
 
 #if DEBUG_TX
 #if DEBUG_FOR_PLOTTER
-            Serial.printf("%4d,%4d,%4d,%4d,", msg.cmd_Left_L, msg.cmd_Left_R, msg.cmd_Right_L, msg.cmd_Right_R);
+            // Serial.printf("%4d,%4d,%4d,%4d,", msg.cmd_Left_L, msg.cmd_Left_R, msg.cmd_Right_L, msg.cmd_Right_R);
 #else
+#if USE_DUAL_BOARDS
             Serial.printf("CMDs Left_LR: %4d,%4d, Right_LR: %4d,%4d  |", msg.cmd_Left_L, msg.cmd_Left_R, msg.cmd_Right_L, msg.cmd_Right_R);
+#else
+            Serial.printf("CMDs L: %4d, R: %4d  |", msg.cmd_L, msg.cmd_R);
+#endif
 #endif
 #endif
             ESPNOW_sendMessage(&msg);
@@ -173,7 +208,8 @@ void loop()
 #endif
     }
 
-#else // IS_RECEIVER
+#else // loop() IS_RECEIVER
+    // ===========================================================================
 
 #if USE_HOVER_SERIAL
     hover_Left.loop_receive();
@@ -219,7 +255,6 @@ void loop()
 #if DEBUG_TX
         Serial.printf("%d,%d,%d,%d", msg.speed_Left_L, msg.speed_Left_R, msg.speed_Right_L, msg.speed_Right_R);
 #endif
-
         ESPNOW_sendBytes((uint8_t *)&msg, sizeof(msg));
 #endif
 #endif
@@ -228,32 +263,28 @@ void loop()
         if (since_received > 1000)
         {
             since_received = 900;
-            msg_from_remote.cmd_Left_L = 0;
-            msg_from_remote.cmd_Left_R = 0;
-            msg_from_remote.cmd_Right_L = 0;
-            msg_from_remote.cmd_Right_R = 0;
 
-            setSpeedMotors(
-                msg_from_remote.cmd_Left_L,
-                msg_from_remote.cmd_Left_R,
-                msg_from_remote.cmd_Right_L,
-                msg_from_remote.cmd_Right_R);
+            setSpeedMotors(0, 0, 0, 0);
+
+            digitalWrite(LED_BUILTIN, (millis() % 500) < 250);
+        }
+        else
+        {
+            digitalWrite(LED_BUILTIN, (millis() % 2000) < 1000);
         }
 
-
-
-        // Blink the LED
-        digitalWrite(LED_BUILTIN, (millis() % 2000) < 1000);
-
 #if DEBUG_RX
-        //  print all 4 msg.speed values in one row for plotting with comma separated:
-        Serial.printf("%d,%d,%d,%d", msg_from_remote.cmd_Left_L, msg_from_remote.cmd_Left_R, msg_from_remote.cmd_Right_L, msg_from_remote.cmd_Right_R);
+#if USE_DUAL_BOARDS
+    //  print all 4 msg.speed values in one row for plotting with comma separated:
+    Serial.printf("%d,%d,%d,%d", msg_from_remote.cmd_Left_L, msg_from_remote.cmd_Left_R, msg_from_remote.cmd_Right_L, msg_from_remote.cmd_Right_R);
+#else
+    Serial.printf("%4d   %4d | ", msg_from_remote.cmd_L, msg_from_remote.cmd_R);
+#endif
 #endif
 
 #if DEBUG_TX || DEBUG_RX || DEBUG_SERIAL_RECEIVE
-        Serial.println();
+    Serial.println();
 #endif
     }
-
 #endif
 }

@@ -23,3 +23,19 @@ This project uses:
 Most adjustments can be made in the __"config.h"__ file.
 
 - use this branch: https://github.com/heartwerker/hoverboard-firmware-hack-FOC/tree/master-hover-roll
+
+
+### Hardware
+
+#### Remote
+
+Use: config.h:
+```
+#define IS_REMOTE 1
+```
+
+Connect Nunchuck:
+SDA <-> D2
+SCL <-> D1
+
+
